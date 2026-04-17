@@ -1,27 +1,41 @@
 import os
 import atexit
+import asyncio
 import queue
 import threading
 import time
 from concurrent.futures import Future
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
-from gologin import GoLogin
-from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
+from playwright.async_api import Error as PlaywrightError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 
 from crawler.pipeline.types import FetchResult
 
 _playwright = None
-_gologin = None
-_browser = None
 _context = None
 _fetch_queue = queue.Queue()
 _fetch_thread = None
 _fetch_thread_lock = threading.Lock()
 _STOP = object()
+_PROFILE_DIR = Path(".chromium-profile")
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+)
+_STEALTH_SCRIPT = """
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
+Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+window.chrome = window.chrome || { runtime: {} };
+"""
 
 
 _SOCIAL_ORIGINS = {
@@ -73,29 +87,30 @@ def _is_valid_url(url: str) -> bool:
     return p.scheme in ("http", "https") and bool(p.netloc) and "." in p.netloc
 
 
-def _get_context():
-    global _playwright, _gologin, _browser, _context
+async def _get_context():
+    global _playwright, _context
 
-    if _browser and _browser.is_connected() and _context:
+    if _context:
         return _context
 
-    token = os.environ.get("GOLOGIN_TOKEN") or os.environ["GL_API_TOKEN"]
-    profile_id = os.environ.get("GOLOGIN_PROFILE_ID") or os.environ["GL_PROFILE_ID"]
-    _gologin = GoLogin(
-        {
-            "token": token,
-            "profile_id": profile_id,
-            "extra_params": ["--headless"],
-        }
+    _playwright = await async_playwright().start()
+    _context = await _playwright.chromium.launch_persistent_context(
+        user_data_dir=_PROFILE_DIR,
+        headless=True,
+        viewport={"width": 1366, "height": 768},
+        screen={"width": 1366, "height": 768},
+        user_agent=_USER_AGENT,
+        locale="en-US",
+        timezone_id="America/New_York",
+        color_scheme="light",
+        device_scale_factor=1,
+        args=["--disable-blink-features=AutomationControlled"],
     )
-    debugger_address = _gologin.start()
-    _playwright = sync_playwright().start()
-    _browser = _playwright.chromium.connect_over_cdp(f"http://{debugger_address}")
-    _context = _browser.contexts[0]
+    await _context.add_init_script(_STEALTH_SCRIPT)
     return _context
 
 
-def _fetch_in_browser(url: str) -> FetchResult:
+async def _fetch_in_browser(url: str) -> FetchResult:
     attempts = 3
     status_code = None
     content_type = ""
@@ -105,9 +120,11 @@ def _fetch_in_browser(url: str) -> FetchResult:
     for attempt in range(attempts):
         page = None
         try:
-            context = _get_context()
-            page = context.new_page()
-            response = page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            context = await _get_context()
+            page = await context.new_page()
+            response = await page.goto(
+                url, wait_until="domcontentloaded", timeout=20000
+            )
             if response is None:
                 return FetchResult(ok=False, message="Operator request error")
 
@@ -117,18 +134,18 @@ def _fetch_in_browser(url: str) -> FetchResult:
             if status_code >= 500:
                 raise PlaywrightError(f"Server error: {status_code}")
 
-            text = page.content()
+            text = await page.content()
             break
-        except (PlaywrightTimeoutError, PlaywrightError):
+        except (PlaywrightTimeoutError, PlaywrightError) as e:
             if attempt < attempts - 1:
-                print("Retrying fetch...")
-                time.sleep(2 ** attempt)
+                print(f"Retrying fetch... {e}")
+                await asyncio.sleep(2 ** attempt)
             else:
                 return FetchResult(ok=False, message="Operator request error")
         finally:
             if page:
                 try:
-                    page.close()
+                    await page.close()
                 except PlaywrightError:
                     pass
 
@@ -144,36 +161,27 @@ def _fetch_in_browser(url: str) -> FetchResult:
     return FetchResult(ok=True, url=final_url, text=text)
 
 
-def _close_browser_state():
-    global _playwright, _gologin, _browser, _context
+async def _close_browser_state():
+    global _playwright, _context
 
     try:
-        if _browser and _browser.is_connected():
-            _browser.close()
+        if _context:
+            await _context.close()
     except PlaywrightError:
         pass
     finally:
-        _browser = None
         _context = None
 
     if _playwright:
         try:
-            _playwright.stop()
+            await _playwright.stop()
         except PlaywrightError:
             pass
         finally:
             _playwright = None
 
-    if _gologin:
-        try:
-            _gologin.stop()
-        except Exception:
-            pass
-        finally:
-            _gologin = None
 
-
-def _browser_loop():
+async def _browser_loop():
     try:
         while True:
             item = _fetch_queue.get()
@@ -183,13 +191,17 @@ def _browser_loop():
 
                 url, future = item
                 try:
-                    future.set_result(_fetch_in_browser(url))
+                    future.set_result(await _fetch_in_browser(url))
                 except BaseException as exc:
                     future.set_exception(exc)
             finally:
                 _fetch_queue.task_done()
     finally:
-        _close_browser_state()
+        await _close_browser_state()
+
+
+def _run_browser_loop():
+    asyncio.run(_browser_loop())
 
 
 def _ensure_browser_thread():
@@ -200,7 +212,7 @@ def _ensure_browser_thread():
             return
 
         _fetch_thread = threading.Thread(
-            target=_browser_loop,
+            target=_run_browser_loop,
             name="fetch-browser",
             daemon=True,
         )
@@ -210,8 +222,6 @@ def _ensure_browser_thread():
 def shutdown_browser():
     if _fetch_thread and _fetch_thread.is_alive():
         _fetch_queue.put(_STOP)
-    else:
-        _close_browser_state()
 
 
 atexit.register(shutdown_browser)
