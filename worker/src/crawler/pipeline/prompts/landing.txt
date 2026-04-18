@@ -19,6 +19,6 @@ Respond with a parsable JSON only (no markdowns, no comments) with this exact ty
   is_commercial_operator: boolean | null; // True if the operator sells or promotes any likely paid, experience-based offering (tickets, tours, activities, rentals, etc). Exclude purely retail products.
   booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer" | null; // If the booking hyperlink is to an external booking website, put "Online Booking". If you are not confident, put "Cannot Infer" and put one hyperlink (in the follow_booking field) to goto to a page that will contain the booking method.
   operating_scope: "local" | "multi_regional" | "international" | null; // Does the operator offer experiences in one destination (local), more than one destination within a country (multi_regional), or more than one country (international)?
-  follow_contact: string | null; // If the website is owned by the specified operator, choose one hyperlink to follow to the website's contact page. If none, enter the current URL if it contains contact info.
+  follow_contact: string | null; // If contact info is on the current page, put the current URL. Otherwise choose one hyperlink to follow to the website's contact page.
   follow_booking: string | null;
 }

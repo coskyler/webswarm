@@ -1,6 +1,7 @@
 import httpx
 import json
 import os
+import time
 from crawler.pipeline.types import OperatorInfo, SearchResult
 from rapidfuzz import fuzz
 from unidecode import unidecode
@@ -83,6 +84,7 @@ def search(operator: OperatorInfo, trace) -> SearchResult:
     # three attempts
     attempt_results = []
     for attempt in range(3):
+        attempt_start = time.perf_counter()
         try:
             response = httpx.post(
                 "https://api.brightdata.com/request",
@@ -94,12 +96,13 @@ def search(operator: OperatorInfo, trace) -> SearchResult:
                 {
                     "attempt": attempt + 1,
                     "result": "response",
+                    "latency": round(time.perf_counter() - attempt_start, 3),
                 }
             )
             break
         except httpx.RequestError as e:
             attempt_results.append(
-                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e)}
+                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e), "latency": round(time.perf_counter() - attempt_start, 3)}
             )
             response = None
 

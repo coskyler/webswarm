@@ -33,7 +33,7 @@ class Trace:
                 else:
                     parts.append(f"{k}={v}")
             meta = " ".join(parts)
-            line = f"[{dt:.2f}s] {step:<16} {meta}".rstrip()
+            line = f"{f"[{dt:.2f}s]":>9} {step:<16} {meta}".rstrip()
             lines.append(line)
 
         return "\n".join(lines)

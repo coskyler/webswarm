@@ -85,6 +85,10 @@ def _is_valid_url(url: str) -> bool:
     return p.scheme in ("http", "https") and bool(p.netloc) and "." in p.netloc
 
 
+def _is_not_found(result: FetchResult) -> bool:
+    return result.message in {"Request error: 404", "Request error: 410"}
+
+
 async def _get_context():
     global _playwright, _context
 
@@ -117,6 +121,7 @@ async def _fetch_in_browser(url: str, trace) -> FetchResult:
 
     for attempt in range(attempts):
         page = None
+        attempt_start = time.perf_counter()
         try:
             context = await _get_context()
             page = await context.new_page()
@@ -124,8 +129,8 @@ async def _fetch_in_browser(url: str, trace) -> FetchResult:
                 url, wait_until="domcontentloaded", timeout=20000
             )
             if response is None:
-                attempt_results.append({"attempt": attempt + 1, "result": "no response"})
-                trace.add("fetch_browser", ok=False, message="Operator request error", attempts=attempt_results)
+                attempt_results.append({"attempt": attempt + 1, "result": "no response", "latency": round(time.perf_counter() - attempt_start, 3)})
+                trace.add("fetch", ok=False, message="Operator request error", attempts=attempt_results)
                 return FetchResult(ok=False, message="Operator request error")
 
             status_code = response.status
@@ -139,18 +144,19 @@ async def _fetch_in_browser(url: str, trace) -> FetchResult:
                 {
                     "attempt": attempt + 1,
                     "result": "ok",
+                    "latency": round(time.perf_counter() - attempt_start, 3),
                 }
             )
             break
         except (PlaywrightTimeoutError, PlaywrightError) as e:
             attempt_results.append(
-                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e)}
+                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e), "latency": round(time.perf_counter() - attempt_start, 3)}
             )
             if attempt < attempts - 1:
                 print(f"Retrying fetch... {e}")
                 await asyncio.sleep(2 ** attempt)
             else:
-                trace.add("fetch_browser", ok=False, message="Operator request error", attempts=attempt_results)
+                trace.add("fetch", ok=False, message="Operator request error", attempts=attempt_results)
                 return FetchResult(ok=False, message="Operator request error")
         finally:
             if page:
@@ -160,18 +166,18 @@ async def _fetch_in_browser(url: str, trace) -> FetchResult:
                     pass
 
     if status_code is None:
-        trace.add("fetch_browser", ok=False, message="Operator request error", attempts=attempt_results)
+        trace.add("fetch", ok=False, message="Operator request error", attempts=attempt_results)
         return FetchResult(ok=False, message="Operator request error")
 
     if not 200 <= status_code < 300:
-        trace.add("fetch_browser", ok=False, final_url=final_url, message=f"Request error: {status_code}", attempts=attempt_results)
+        trace.add("fetch", ok=False, final_url=final_url, message=f"Request error: {status_code}", attempts=attempt_results)
         return FetchResult(ok=False, message=f"Request error: {status_code}")
 
     if "html" not in content_type and "<html" not in text.lower():
-        trace.add("fetch_browser", ok=False, final_url=final_url, message="Non-HTML response", attempts=attempt_results)
+        trace.add("fetch", ok=False, final_url=final_url, message="Non-HTML response", attempts=attempt_results)
         return FetchResult(ok=False, message="Non-HTML response")
 
-    trace.add("fetch_browser", ok=True, final_url=final_url, attempts=attempt_results)
+    trace.add("fetch", ok=True, final_url=final_url, attempts=attempt_results)
     return FetchResult(ok=True, url=final_url, text=text)
 
 
@@ -272,17 +278,14 @@ def fetch(url: str, trace) -> FetchResult:
     _ensure_browser_thread()
     future = Future()
     _fetch_queue.put((url, future, trace))
-    return future.result()
+    result = future.result()
+    if result.ok or _is_not_found(result):
+        return result
 
-def stealth_fetch(url: str, trace) -> FetchResult:
-    if not url or not _is_valid_url(url):
-        trace.add("stealth_fetch", ok=False, message="Invalid URL")
-        return FetchResult(ok=False, message="Invalid URL")
+    return _stealth_fetch(url, trace)
 
-    if _is_social_url(url):
-        trace.add("stealth_fetch", ok=False, message="Social URL")
-        return FetchResult(ok=False, message="Social URL")
 
+def _stealth_fetch(url: str, trace) -> FetchResult:
     headers = {
         "Authorization": f"Bearer {os.environ['BRIGHTDATA_FETCH_API_KEY']}",
         "Content-Type": "application/json",
@@ -296,6 +299,7 @@ def stealth_fetch(url: str, trace) -> FetchResult:
     response = None
     attempt_results = []
     for attempt in range(2):
+        attempt_start = time.perf_counter()
         try:
             response = httpx.post(
                 "https://api.brightdata.com/request",
@@ -307,12 +311,13 @@ def stealth_fetch(url: str, trace) -> FetchResult:
                 {
                     "attempt": attempt + 1,
                     "result": "response",
+                    "latency": round(time.perf_counter() - attempt_start, 3),
                 }
             )
             break
         except httpx.RequestError as e:
             attempt_results.append(
-                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e)}
+                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e), "latency": round(time.perf_counter() - attempt_start, 3)}
             )
             if attempt == 0:
                 time.sleep(2)
