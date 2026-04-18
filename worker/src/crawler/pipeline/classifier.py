@@ -8,7 +8,7 @@ from crawler.pipeline.types import OperatorInfo, ParseResult, ClassifyResult
 client = OpenAI()
 
 
-def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, expected_shape) -> ClassifyResult:
+def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, expected_shape, trace) -> ClassifyResult:
     prompt = (
         prompt_context
         + "\nSpecified operator: "
@@ -33,6 +33,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
             prompt_cache_key="AOIOUSJD98231u89hKAJSHf1982u3JKAHSDAKSHJD1982zxkhfkl",
         )
     except Exception:
+        trace.add("classify", ok=False, message="ChatGPT API error")
         return ClassifyResult(ok=False, message="ChatGPT API error")
 
     result_meta = {
@@ -45,6 +46,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
     try:
         parsed_output = json.loads(res.output_text)
     except json.JSONDecodeError:
+        trace.add("classify", ok=False, message="ChatGPT provided invalid JSON")
         return ClassifyResult(
             ok=False,
             message="ChatGPT provided invalid JSON",
@@ -54,6 +56,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
     try:
         expected_shape.validate(parsed_output)
     except SchemaError:
+        trace.add("classify", ok=False, message="ChatGPT provided invalid JSON schema")
         return ClassifyResult(
             ok=False,
             message="ChatGPT provided invalid JSON schema",
@@ -61,6 +64,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
         )
 
     if "ok" in parsed_output and not parsed_output["ok"]:
+        trace.add("classify", ok=False, message="LLM identified webpage error")
         return ClassifyResult(
             ok=False,
             message="LLM identified webpage error",
@@ -68,6 +72,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
         )
 
     if "belongs_to_specified_operator" in parsed_output and not parsed_output["belongs_to_specified_operator"]:
+        trace.add("classify", ok=False, message="Webpage is not about the operator")
         return ClassifyResult(
             ok=False,
             message="Webpage is not about the operator",
@@ -75,6 +80,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
         )
 
     if "is_experience" in parsed_output and not parsed_output["is_experience"]:
+        trace.add("classify", ok=False, message="Webpage is not an experience")
         return ClassifyResult(
             ok=False,
             message="Webpage is not an experience",
@@ -86,5 +92,7 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
     classification = result_values.pop("classification", None)
     if classification is not None:
         result_values.update(classification)
+
+    trace.add("classify", ok=True)
 
     return ClassifyResult(ok=True, **result_values, **result_meta)

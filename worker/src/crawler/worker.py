@@ -96,7 +96,8 @@ def job(row):
         url=row["operator_website"] or ""
     )
 
-    result: ClassifyResult = orchestrator.run(operator)
+    result, trace = orchestrator.run(operator)
+    print(trace.to_string())
     _insert_result(row["attraction_id"], result)
 
     print(f"Finished {row['operator']}")

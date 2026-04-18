@@ -178,12 +178,13 @@ def _remove_whitespace(lines: list[str]) -> None:
         lines[i] = lines[i][leadingSpaces:]
 
 
-def parse(fetched: FetchResult) -> ParseResult:
+def parse(fetched: FetchResult, trace) -> ParseResult:
     root: HtmlElement | None = None
 
     try:
         root = html.fromstring(fetched.text)
     except ParserError:
+        trace.add("parse", ok=False, message="Parse error")
         return ParseResult(ok=False, message="Parse error")
 
     lines = []
@@ -194,6 +195,7 @@ def parse(fetched: FetchResult) -> ParseResult:
     _walk(root, fetched.url, lines, links, emails, phones)
 
     if not lines:
+        trace.add("parse", ok=False, message="Parse error")
         return ParseResult(ok=False, message="Parse error")
 
     _remove_whitespace(lines)
@@ -227,6 +229,8 @@ def parse(fetched: FetchResult) -> ParseResult:
             socials.setdefault(sld_name, new_link)
 
     # print(f"\n\nparsed chars: {len(parsed_text)}\n\n{parsed_text}\n\nhypertext: {len(hyperlink_key_text)}\n\n{hyperlink_key_text}")
+
+    trace.add("parse", ok=True)
 
     return ParseResult(
         ok=True,

@@ -69,7 +69,7 @@ def _validate_url(link: str) -> bool:
     return True
 
 
-def search(operator: OperatorInfo) -> SearchResult:
+def search(operator: OperatorInfo, trace) -> SearchResult:
     headers = {
         "Authorization": f"Bearer {os.environ['BRIGHTDATA_SERP_API_KEY']}",
         "Content-Type": "application/json",
@@ -81,7 +81,8 @@ def search(operator: OperatorInfo) -> SearchResult:
     }
 
     # three attempts
-    for _ in range(3):
+    attempt_results = []
+    for attempt in range(3):
         try:
             response = httpx.post(
                 "https://api.brightdata.com/request",
@@ -89,16 +90,27 @@ def search(operator: OperatorInfo) -> SearchResult:
                 headers=headers,
                 timeout=30,
             )
+            attempt_results.append(
+                {
+                    "attempt": attempt + 1,
+                    "result": "response",
+                }
+            )
             break
-        except httpx.RequestError:
+        except httpx.RequestError as e:
+            attempt_results.append(
+                {"attempt": attempt + 1, "result": type(e).__name__, "message": str(e)}
+            )
             response = None
 
     if response is None:
+        trace.add("search", ok=False, message="SERP Request Error", attempts=attempt_results)
         return SearchResult(ok=False, message="SERP Request Error")
 
     try:
         results = json.loads(response.text)
     except json.JSONDecodeError:
+        trace.add("search", ok=False, message="SERP provided invalid JSON", attempts=attempt_results)
         return SearchResult(ok=False, message="SERP provided invalid JSON")
 
     best: str = ""
@@ -121,9 +133,12 @@ def search(operator: OperatorInfo) -> SearchResult:
                 best = link
 
     except Exception:
+        trace.add("search", ok=False, message="SERP provided invalid JSON schema", attempts=attempt_results)
         return SearchResult(ok=False, message="SERP provided invalid JSON schema")
 
     if not _validate_url(best):
+        trace.add("search", ok=False, message="Found social/aggregator URL", attempts=attempt_results)
         return SearchResult(ok=False, url=best, message="Found social/aggregator URL")
 
+    trace.add("search", ok=True, attempts=attempt_results)
     return SearchResult(ok=True, url=best)
