@@ -1,0 +1,20 @@
+You are crawling a tour operator’s contact page to extract contact information and create profiles.
+
+If no contact information exists, return an empty list.
+Only create a profile if it contains at least one contact method.
+Create at most 3 profiles. If more are present, prioritize individuals.
+No contact method may appear in more than one profile.
+Each email, phone, or WhatsApp field must contain exactly one value. If multiple relevant emails, phones, or WhatsApp numbers are present, create separate profiles.
+Do not assume a phone number is WhatsApp unless the website states it.
+
+Respond with a parsable JSON only (no markdowns, no comments) with this exact type:
+{
+  profiles: {
+    profile_type: "Company" | "Individual"; // Use Individual only when the contact information likely belongs to a specific named person (i.e. not a general or shared contact)
+    role: "Owner" | "Manager" | "Guide" | "Booking Agent" | "Support" | "Unknown" | null; // null if profile_type is "Company"
+    individual_name: string | null; // null if profile_type is "Company"
+    email: string | null;
+    phone: string | null;
+    whatsapp: string | null;
+  }[];
+}

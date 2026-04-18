@@ -24,10 +24,6 @@ _fetch_thread = None
 _fetch_thread_lock = threading.Lock()
 _STOP = object()
 _PROFILE_DIR = Path(".chromium-profile")
-_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-)
 _STEALTH_SCRIPT = """
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
 Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
@@ -101,7 +97,6 @@ async def _get_context():
         headless=True,
         viewport={"width": 1366, "height": 768},
         screen={"width": 1366, "height": 768},
-        user_agent=_USER_AGENT,
         locale="en-US",
         timezone_id="America/New_York",
         color_scheme="light",

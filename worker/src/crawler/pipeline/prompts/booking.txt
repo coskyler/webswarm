@@ -1,0 +1,6 @@
+You are crawling a tour operator's website. Your task is to determine what booking method they use, whether they offer online booking, or just a form, or just contact information. Make your best educated guess.
+
+Respond with a parsable JSON only (no markdowns, no comments) with this exact type:
+{
+    booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer"; // if multiple options are applicable, choose the firstmost option
+}

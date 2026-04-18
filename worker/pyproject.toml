@@ -18,7 +18,8 @@ dependencies = [
     "lxml==6.0.2",
     "publicsuffix2==2.20191221",
     "Unidecode==1.4.0",
-    "playwright==1.58.0"
+    "playwright==1.58.0",
+    "schema==0.7.8"
 ]
 
 [tool.setuptools.packages.find]

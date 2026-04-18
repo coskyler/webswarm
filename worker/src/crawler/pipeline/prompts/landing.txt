@@ -1,0 +1,24 @@
+You are crawling a webpage that is presumably about an experience. You will respond with JSON where each field indicates the cooresponding characteristic about the experience operator. Complete each field in order, following the instructions in the cooresponding comment.
+
+Respond with a parsable JSON only (no markdowns, no comments) with this exact type:
+{
+  ok: boolean; // True if the webpage is valid and contains at least some information (not an error/shell page)
+  is_experience: boolean; // True if the webpage broadly about some experience
+  belongs_to_specified_operator: boolean; // Default to True. Set False only when you are highly confident the page refers to a different operator or is unrelated.
+  // If any of the first three fields are false, fail fast and return null for the rest.
+  
+  classification:
+    | null
+    | { operator_type: "Activity"; business_type: "Air-based adventure, activity, or rentals" | "Cultural activity, experience or classes" | "Land-based adventure, activity, or rentals" | "Water-based adventure, activity, or rentals" | "Wellness" }
+    | { operator_type: "Attraction"; business_type: "Amusement & Theme Parks" | "Cultural Sites & Landmarks" | "Museums & Galleries" | "Natural Attraction" | "Observation Decks & Towers" | "Zoos & Aquariums" }
+    | { operator_type: "Event"; business_type: "Festivals" | "Performing arts" | "Sporting event" }
+    | { operator_type: "Tour"; business_type: "Active / adventure" | "Boat Tours" | "Cultural & Specialty Tours" | "Food & Drink" | "Multi-day Tours" | "Sightseeing" | "Tour of a specific attraction" }
+    | { operator_type: "Transportation"; business_type: "Transportation" };
+    // it is imperative to select the most accurate and specific operator_type and business_type based on the dominating feature of the experience. For example, the dominating feature of a bike sightseeing tour is likely biking (Active / Adventure), but the dominating feature of a walking sightseeing tour is sightseeing.
+
+  is_commercial_operator: boolean | null; // True if the operator sells or promotes any likely paid, experience-based offering (tickets, tours, activities, rentals, etc). Exclude purely retail products.
+  booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer" | null; // If you are not confident, put "Cannot Infer" and put one hyperlink (in the follow_booking field) to goto to a page that will contain the booking method.
+  operating_scope: "local" | "multi_regional" | "international" | null; // Does the operator offer experiences in one destination (local), more than one destination within a country (multi_regional), or more than one country (international)?
+  follow_contact: string | null; // If the website is owned by the specified operator, choose one hyperlink to follow to the website's contact page. If none, enter the current URL if it contains contact info.
+  follow_booking: string | null;
+}

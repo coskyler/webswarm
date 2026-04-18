@@ -7,13 +7,9 @@ class OperatorInfo(BaseModel):
     url: str = ""
 
 class Profile(BaseModel):
-    operator_name: str
-    operator_country: str | None = None
-    operator_city: str | None = None
-
     profile_type: str
     role: str | None = None
-    profile_name: str | None = None
+    individual_name: str | None = None
     email: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
@@ -38,7 +34,7 @@ class ClassifyResult(BaseModel):
     operator_type: str | None = None
     business_type: str | None = None
     experience_type: str | None = None
-    is_commercial: bool | None = None
+    is_commercial_operator: bool | None = None
     booking_method: str | None = None
     operating_scope: str | None = None
     final_url: str | None = None
@@ -50,6 +46,23 @@ class ClassifyResult(BaseModel):
     cached_input_tokens: int = 0
     output_tokens: int = 0
     searched: bool = False
+    used_stealth: bool = False
+
+    def merge(self, other: "ClassifyResult") -> None:
+        for k in self.model_fields:
+            a, b = getattr(self, k), getattr(other, k)
+            if b is None:
+                continue
+            if k in {"input_tokens", "cached_input_tokens", "output_tokens"}:
+                setattr(self, k, a + b)
+            elif k in {"ok", "searched"}:
+                setattr(self, k, a or b)
+            elif k == "profiles":
+                setattr(self, k, (a or []) + b)
+            elif k == "message":
+                setattr(self, k, f"{a} | {b}" if a else b)
+            elif a is None:
+                setattr(self, k, b)
 
 class SearchResult(BaseModel):
     ok: bool

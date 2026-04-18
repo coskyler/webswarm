@@ -1,7 +1,14 @@
+from pathlib import Path
+
 from crawler.pipeline.fetcher import fetch
 from crawler.pipeline.parser import parse
-from crawler.pipeline.classifier import classify, classify_booking, classify_contacts
+from crawler.pipeline.classifier import classify
 from crawler.pipeline.searcher import search
+from crawler.pipeline.prompts.expected_shapes import (
+    ExpectedBooking,
+    ExpectedLanding,
+    ExpectedProfiles,
+)
 from crawler.pipeline.types import (
     OperatorInfo,
     FetchResult,
@@ -10,6 +17,12 @@ from crawler.pipeline.types import (
     SearchResult,
 )
 from pydantic import BaseModel
+
+
+PROMPT_DIR = Path(__file__).with_name("prompts")
+LANDING_PROMPT = (PROMPT_DIR / "landing.txt").read_text(encoding="utf-8")
+BOOKING_PROMPT = (PROMPT_DIR / "booking.txt").read_text(encoding="utf-8")
+PROFILES_PROMPT = (PROMPT_DIR / "profiles.txt").read_text(encoding="utf-8")
 
 
 class GetResult(BaseModel):
@@ -62,7 +75,9 @@ def run(operator: OperatorInfo) -> ClassifyResult:
     operator.url = landing_content.followed_url
 
     # classify content with LLM
-    classification = classify(landing_content.parsed, operator)
+    classification = classify(
+        landing_content.parsed, operator, LANDING_PROMPT, ExpectedLanding
+    )
     classification.searched = searched
     if not classification.ok:
         if (
@@ -77,7 +92,12 @@ def run(operator: OperatorInfo) -> ClassifyResult:
                 landing_content: GetResult = _get_content(url_search.url)
                 if landing_content.ok:
                     operator.url = landing_content.followed_url
-                    new_classification = classify(landing_content.parsed, operator)
+                    new_classification = classify(
+                        landing_content.parsed,
+                        operator,
+                        LANDING_PROMPT,
+                        ExpectedLanding,
+                    )
                     new_classification.searched = searched
                     new_classification.input_tokens += classification.input_tokens
                     new_classification.cached_input_tokens += classification.cached_input_tokens
@@ -112,7 +132,9 @@ def run(operator: OperatorInfo) -> ClassifyResult:
     if classification.follow_booking:
         booking_content: GetResult = _get_content(classification.follow_booking)
         if booking_content.ok:
-            booking_classification = classify_booking(booking_content.parsed, operator)
+            booking_classification = classify(
+                booking_content.parsed, operator, BOOKING_PROMPT, ExpectedBooking
+            )
             if booking_classification.ok:
                 classification.booking_method = booking_classification.booking_method
             else:
@@ -134,8 +156,8 @@ def run(operator: OperatorInfo) -> ClassifyResult:
         else:
             contact_content: GetResult = _get_content(classification.follow_contact)
         if contact_content.ok:
-            contacts_classification = classify_contacts(
-                contact_content.parsed, operator
+            contacts_classification = classify(
+                contact_content.parsed, operator, PROFILES_PROMPT, ExpectedProfiles
             )
             if contacts_classification.ok:
                 classification.profiles = contacts_classification.profiles
