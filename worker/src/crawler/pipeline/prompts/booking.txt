@@ -2,5 +2,6 @@ You are crawling a tour operator's website. Your task is to determine what booki
 
 Respond with a parsable JSON only (no markdowns, no comments) with this exact type:
 {
+    ok: boolean; // True if the webpage is valid and contains at least some information (not an error/shell page). If not ok, booking_method is "Cannot Infer"
     booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer"; // if multiple options are applicable, choose the firstmost option
 }

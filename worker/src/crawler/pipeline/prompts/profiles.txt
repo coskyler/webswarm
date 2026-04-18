@@ -1,6 +1,6 @@
 You are crawling a tour operator’s contact page to extract contact information and create profiles.
 
-If no contact information exists, return an empty list.
+If no contact information exists, make profiles an empty list.
 Only create a profile if it contains at least one contact method.
 Create at most 3 profiles. If more are present, prioritize individuals.
 No contact method may appear in more than one profile.
@@ -9,6 +9,7 @@ Do not assume a phone number is WhatsApp unless the website states it.
 
 Respond with a parsable JSON only (no markdowns, no comments) with this exact type:
 {
+  ok: boolean; // True if the webpage is valid and contains at least some information (not an error/shell page). If not ok, profiles should be an empty list.
   profiles: {
     profile_type: "Company" | "Individual"; // Use Individual only when the contact information likely belongs to a specific named person (i.e. not a general or shared contact)
     role: "Owner" | "Manager" | "Guide" | "Booking Agent" | "Support" | "Unknown" | null; // null if profile_type is "Company"

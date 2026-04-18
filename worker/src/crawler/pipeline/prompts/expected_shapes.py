@@ -2,6 +2,7 @@ from schema import And, Or, Schema
 
 ExpectedBooking = Schema(
     {
+        "ok": bool,
         "booking_method": And(
             str,
             lambda s: s
@@ -91,6 +92,7 @@ ExpectedLanding = Schema(
 
 ExpectedProfiles = Schema(
     {
+        "ok": bool,
         "profiles": [
             {
                 "profile_type": And(

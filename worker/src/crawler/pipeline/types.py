@@ -49,13 +49,13 @@ class ClassifyResult(BaseModel):
     used_stealth: bool = False
 
     def merge(self, other: "ClassifyResult") -> None:
-        for k in self.model_fields:
+        for k in self.model_fields_set:
             a, b = getattr(self, k), getattr(other, k)
             if b is None:
                 continue
             if k in {"input_tokens", "cached_input_tokens", "output_tokens"}:
                 setattr(self, k, a + b)
-            elif k in {"ok", "searched"}:
+            elif k in {"ok", "searched", "used_stealth"}:
                 setattr(self, k, a or b)
             elif k == "profiles":
                 setattr(self, k, (a or []) + b)

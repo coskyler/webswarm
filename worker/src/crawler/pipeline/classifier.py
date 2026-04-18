@@ -65,25 +65,26 @@ def classify(
             **result_meta,
         )
 
-    if "ok" in parsed_output:
-        if not parsed_output["ok"]:
-            return ClassifyResult(
-                ok=False,
-                message="LLM identified webpage error",
-                **result_meta,
-            )
-        if not parsed_output["belongs_to_specified_operator"]:
-            return ClassifyResult(
-                ok=False,
-                message="Webpage is not about the operator",
-                **result_meta,
-            )
-        if not parsed_output["is_experience"]:
-            return ClassifyResult(
-                ok=False,
-                message="Webpage is not an experience",
-                **result_meta,
-            )
+    if "ok" in parsed_output and not parsed_output["ok"]:
+        return ClassifyResult(
+            ok=False,
+            message="LLM identified webpage error",
+            **result_meta,
+        )
+
+    if "belongs_to_specified_operator" in parsed_output and not parsed_output["belongs_to_specified_operator"]:
+        return ClassifyResult(
+            ok=False,
+            message="Webpage is not about the operator",
+            **result_meta,
+        )
+
+    if "is_experience" in parsed_output and not parsed_output["is_experience"]:
+        return ClassifyResult(
+            ok=False,
+            message="Webpage is not an experience",
+            **result_meta,
+        )
 
     result_values = dict(parsed_output)
     result_values.pop("ok", None)
