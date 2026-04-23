@@ -22,9 +22,10 @@ locals {
       --name pgbouncer \
       --restart unless-stopped \
       -p 6432:6432 \
+      -e ENVIRONMENT=production \
       -e AWS_REGION=${var.aws_region} \
       -e DB_HOST=${data.terraform_remote_state.persistent.outputs.db_host} \
-      -e DB_CREDENTIALS=${var.db_credentials_secret_name} \
+      -e DB_CREDENTIALS_SECRET_NAME=${var.db_credentials_secret_name} \
       ${var.pgbouncer_image_url}
   EOF
   )

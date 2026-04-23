@@ -1,12 +1,12 @@
 [databases]
-webswarm-db = host=db port=5432 dbname=webswarm-db
+${POSTGRES_DB} = host=${DB_HOST} port=5432 dbname=${POSTGRES_DB}
 
 [pgbouncer]
 listen_addr = 0.0.0.0
 listen_port = 6432
 
 ; Auth
-auth_type = trust
+auth_type = plain
 auth_file = /etc/pgbouncer/userlist.txt
 
 ; Pooling

@@ -13,7 +13,7 @@ def get_secrets():
     def get(name):
         return sm.get_secret_value(SecretId=name)["SecretString"]
 
-    creds = json.loads(get(os.environ["DB_CREDENTIALS"]))
+    creds = json.loads(get(os.environ["DB_CREDENTIALS_SECRET_NAME"]))
 
     os.environ["POSTGRES_USER"] = creds["username"]
     os.environ["POSTGRES_PASSWORD"] = creds["password"]

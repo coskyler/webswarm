@@ -12,13 +12,11 @@ services:
       - ./jobs_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
 
   pgbouncer:
-    image: edoburu/pgbouncer:latest
+    build: ../pgbouncer
     container_name: webswarm-pgbouncer
+    env_file: ../pgbouncer/.env
     ports:
       - "6432:6432"
-    volumes:
-      - ../pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ../pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     depends_on:
       - db
     restart: unless-stopped

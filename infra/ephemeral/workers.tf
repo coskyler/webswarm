@@ -21,9 +21,10 @@ locals {
     docker run -d \
       --name worker \
       --restart unless-stopped \
+      -e ENVIRONMENT=production \
       -e AWS_REGION=${var.aws_region} \
       -e PGBOUNCER_HOST=${aws_lb.pgbouncer.dns_name} \
-      -e DB_CREDENTIALS=${var.db_credentials_secret_name} \
+      -e DB_CREDENTIALS_SECRET_NAME=${var.db_credentials_secret_name} \
       -e OPENAI_SECRET_NAME=${var.openai_secret_name} \
       -e BRIGHTDATA_SERP_SECRET_NAME=${var.brightdata_serp_secret_name} \
       -e BRIGHTDATA_FETCH_SECRET_NAME=${var.brightdata_fetch_secret_name} \
