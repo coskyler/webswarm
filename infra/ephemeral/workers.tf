@@ -1,37 +1,22 @@
 # USER DATA SCRIPT
 
 locals {
-  worker_user_data = base64encode(<<-EOF
-    #!/bin/bash
-    set -euxo pipefail
+  worker-cloudwatch_config = templatefile("${path.module}/scripts/cloudwatch-agent.json", {
+    log_group_name = "workers"
+  })
 
-    dnf update -y
-    dnf install -y docker awscli
-    systemctl enable docker
-    systemctl start docker
-
-    aws ecr get-login-password --region ${var.aws_region} \
-      | docker login --username AWS --password-stdin ${var.ecr_registry}
-
-    docker pull ${var.worker_image_url}
-
-    docker stop worker || true
-    docker rm worker || true
-
-    docker run -d \
-      --name worker \
-      --restart unless-stopped \
-      -e ENVIRONMENT=production \
-      -e AWS_REGION=${var.aws_region} \
-      -e S3_BUCKET=${data.terraform_remote_state.persistent.outputs.html_cache_bucket_name} \
-      -e PGBOUNCER_HOST=${aws_lb.pgbouncer.dns_name} \
-      -e DB_CREDENTIALS_SECRET_NAME=${var.db_credentials_secret_name} \
-      -e OPENAI_SECRET_NAME=${var.openai_secret_name} \
-      -e BRIGHTDATA_SERP_SECRET_NAME=${var.brightdata_serp_secret_name} \
-      -e BRIGHTDATA_FETCH_SECRET_NAME=${var.brightdata_fetch_secret_name} \
-      ${var.worker_image_url}
-  EOF
-  )
+  worker_user_data = base64encode(templatefile("${path.module}/scripts/worker-user-data.sh", {
+    aws_region                   = var.aws_region
+    ecr_registry                 = var.ecr_registry
+    worker_image_url             = var.worker_image_url
+    s3_bucket                    = data.terraform_remote_state.persistent.outputs.html_cache_bucket_name
+    pgbouncer_host               = aws_lb.pgbouncer.dns_name
+    db_credentials_secret_name   = var.db_credentials_secret_name
+    openai_secret_name           = var.openai_secret_name
+    brightdata_serp_secret_name  = var.brightdata_serp_secret_name
+    brightdata_fetch_secret_name = var.brightdata_fetch_secret_name
+    cloudwatch_config            = local.worker-cloudwatch_config
+  }))
 }
 
 # LAUNCH TEMPLATE

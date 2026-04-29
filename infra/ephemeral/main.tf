@@ -31,10 +31,16 @@ resource "aws_iam_role_policy_attachment" "compute_secrets" {
   policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadOnly"
 }
 
+# Allow CloudWatch Agent to publish logs and metrics
+resource "aws_iam_role_policy_attachment" "compute_cloudwatch" {
+  role       = aws_iam_role.compute.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 # Allow get and put to s3 bucket
 resource "aws_iam_role_policy" "compute_html_cache" {
   name = "compute-html-cache"
-  role = aws_iam_role.compute.id
+  role = aws_iam_role.compute.name
 
   policy = jsonencode({
     Version = "2012-10-17"

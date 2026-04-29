@@ -1,34 +1,18 @@
 # USER DATA SCRIPT
 
 locals {
-  pgbouncer_user_data = base64encode(<<-EOF
-    #!/bin/bash
-    set -euxo pipefail
+  pgbouncer-cloudwatch_config = templatefile("${path.module}/scripts/cloudwatch-agent.json", {
+    log_group_name = "pgbouncer"
+  })
 
-    dnf update -y
-    dnf install -y docker awscli
-    systemctl enable docker
-    systemctl start docker
-
-    aws ecr get-login-password --region ${var.aws_region} \
-      | docker login --username AWS --password-stdin ${var.ecr_registry}
-
-    docker pull ${var.pgbouncer_image_url}
-
-    docker stop pgbouncer || true
-    docker rm pgbouncer || true
-
-    docker run -d \
-      --name pgbouncer \
-      --restart unless-stopped \
-      -p 6432:6432 \
-      -e ENVIRONMENT=production \
-      -e AWS_REGION=${var.aws_region} \
-      -e DB_HOST=${data.terraform_remote_state.persistent.outputs.db_host} \
-      -e DB_CREDENTIALS_SECRET_NAME=${var.db_credentials_secret_name} \
-      ${var.pgbouncer_image_url}
-  EOF
-  )
+  pgbouncer_user_data = base64encode(templatefile("${path.module}/scripts/pgbouncer-user-data.sh", {
+    aws_region                 = var.aws_region
+    ecr_registry               = var.ecr_registry
+    pgbouncer_image_url        = var.pgbouncer_image_url
+    db_host                    = data.terraform_remote_state.persistent.outputs.db_host
+    db_credentials_secret_name = var.db_credentials_secret_name
+    cloudwatch_config            = local.pgbouncer-cloudwatch_config
+  }))
 }
 
 # LAUNCH TEMPLATE
