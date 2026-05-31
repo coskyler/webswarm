@@ -79,3 +79,21 @@ resource "aws_route_table_association" "public_b" {
   subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
+
+# ECR REPOS FOR WORKER AND PGBOUNCER IMAGES
+
+resource "aws_ecr_repository" "workers" {
+  name                 = "${var.app_name}-workers"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "pgbouncer" {
+  name                 = "${var.app_name}-pgbouncer"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}

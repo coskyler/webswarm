@@ -84,6 +84,15 @@ resource "aws_vpc_security_group_ingress_rule" "postgres_from_pgbouncer" {
   ip_protocol                  = "tcp"
 }
 
+# to allow local access
+resource "aws_vpc_security_group_ingress_rule" "postgres_from_anywhere" {
+  security_group_id = aws_security_group.postgres.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 5432
+  to_port           = 5432
+  ip_protocol       = "tcp"
+}
+
 resource "aws_vpc_security_group_egress_rule" "postgres_all_ipv4" {
   security_group_id = aws_security_group.postgres.id
   ip_protocol       = "-1"
