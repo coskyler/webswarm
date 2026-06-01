@@ -11,7 +11,7 @@ locals {
     pgbouncer_image_url        = var.pgbouncer_image_url
     db_host                    = data.terraform_remote_state.persistent.outputs.db_host
     db_credentials_secret_name = var.db_credentials_secret_name
-    cloudwatch_config            = local.pgbouncer-cloudwatch_config
+    cloudwatch_config          = local.pgbouncer-cloudwatch_config
   }))
 }
 

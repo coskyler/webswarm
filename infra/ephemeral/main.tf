@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "compute_ecr" {
 # Allow reading secrets
 resource "aws_iam_role_policy_attachment" "compute_secrets" {
   role       = aws_iam_role.compute.name
-  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadOnly"
+  policy_arn = "arn:aws:iam::aws:policy/AWSSecretsManagerClientReadOnlyAccess"
 }
 
 # Allow CloudWatch Agent to publish logs and metrics

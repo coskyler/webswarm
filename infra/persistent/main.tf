@@ -83,7 +83,7 @@ resource "aws_route_table_association" "public_b" {
 # ECR REPOS FOR WORKER AND PGBOUNCER IMAGES
 
 resource "aws_ecr_repository" "workers" {
-  name                 = "${var.app_name}-workers"
+  name = "${var.app_name}-workers"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -91,7 +91,7 @@ resource "aws_ecr_repository" "workers" {
 }
 
 resource "aws_ecr_repository" "pgbouncer" {
-  name                 = "${var.app_name}-pgbouncer"
+  name = "${var.app_name}-pgbouncer"
 
   image_scanning_configuration {
     scan_on_push = true
