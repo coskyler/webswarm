@@ -11,7 +11,7 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 query = """
     SELECT *
     FROM jobs
-    WHERE status IN ('finished', 'running')
+    WHERE status IN ('finished', 'running', 'failed')
     ORDER BY attraction_id
 """
 

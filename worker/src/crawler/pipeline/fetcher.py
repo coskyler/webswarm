@@ -26,6 +26,9 @@ _context_lock = None
 _fetch_queue = queue.Queue()
 _fetch_thread = None
 _fetch_thread_lock = threading.Lock()
+_fetch_tasks = {}
+_fetch_tasks_lock = threading.Lock()
+_fetch_loop = None
 _STOP = object()
 _STEALTH_SCRIPT = """
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -255,6 +258,9 @@ async def _close_browser_state():
 
 
 async def _browser_loop():
+    global _fetch_loop
+
+    _fetch_loop = asyncio.get_running_loop()
     tasks = set()
     try:
         while True:
@@ -269,8 +275,20 @@ async def _browser_loop():
                     return
 
                 url, future, trace = item
+                if future.cancelled():
+                    _fetch_queue.task_done()
+                    continue
+
                 task = asyncio.create_task(_run_fetch(url, future, trace))
-                task.add_done_callback(lambda _: _fetch_queue.task_done())
+                with _fetch_tasks_lock:
+                    _fetch_tasks[future] = task
+
+                def _fetch_done(_, future=future):
+                    with _fetch_tasks_lock:
+                        _fetch_tasks.pop(future, None)
+                    _fetch_queue.task_done()
+
+                task.add_done_callback(_fetch_done)
                 tasks.add(task)
 
             if tasks:
@@ -287,9 +305,12 @@ async def _browser_loop():
 
 async def _run_fetch(url: str, future: Future, trace):
     try:
-        future.set_result(await _fetch_in_browser(url, trace))
+        result = await _fetch_in_browser(url, trace)
+        if not future.cancelled():
+            future.set_result(result)
     except BaseException as exc:
-        future.set_exception(exc)
+        if not future.cancelled():
+            future.set_exception(exc)
 
 
 def _run_browser_loop():
@@ -340,6 +361,11 @@ def fetch(url: str, trace) -> FetchResult:
     try:
         result = future.result(timeout=90)
     except TimeoutError:
+        future.cancel()
+        with _fetch_tasks_lock:
+            task = _fetch_tasks.get(future)
+        if task and _fetch_loop:
+            _fetch_loop.call_soon_threadsafe(task.cancel)
         trace.add("fetch", ok=False, message="Fetch timed out")
         return FetchResult(ok=False, message="Fetch timed out")
     if result.ok or _is_not_found(result):
