@@ -23,7 +23,7 @@ locals {
 
 resource "aws_launch_template" "workers" {
   name_prefix   = "worker-"
-  image_id      = data.aws_ami.amazon_linux.id
+  image_id      = data.aws_ssm_parameter.amazon_linux.value
   instance_type = var.worker_instance_type
 
   vpc_security_group_ids = [data.terraform_remote_state.persistent.outputs.workers_security_group_id]
