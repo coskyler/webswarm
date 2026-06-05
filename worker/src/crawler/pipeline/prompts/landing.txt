@@ -6,7 +6,8 @@ Respond with a parsable JSON only (no markdowns, no comments) with this exact ty
   is_experience: boolean; // True if the webpage broadly about some experience
   belongs_to_specified_operator: boolean; // Default to True. Set False only when you are highly confident the page refers to a different operator or is unrelated.
   // If any of the first three fields are false, fail fast and return null for the rest.
-  
+
+  description: string | null; // Short 1-2 sentence description of what the operator offers, based only on information found on the webpage.
   classification:
     | null
     | { operator_type: "Activity"; business_type: "Air-based adventure, activity, or rentals" | "Cultural activity, experience or classes" | "Land-based adventure, activity, or rentals" | "Water-based adventure, activity, or rentals" | "Wellness" }
@@ -15,9 +16,8 @@ Respond with a parsable JSON only (no markdowns, no comments) with this exact ty
     | { operator_type: "Tour"; business_type: "Active / adventure" | "Boat Tours" | "Cultural & Specialty Tours" | "Food & Drink" | "Multi-day Tours" | "Sightseeing" | "Tour of a specific attraction" }
     | { operator_type: "Transportation"; business_type: "Transportation" };
     // it is imperative to select the most accurate and specific operator_type and business_type based on the dominating feature of the experience. For example, the dominating feature of a bike sightseeing tour is likely biking (Active / Adventure), but the dominating feature of a walking sightseeing tour is sightseeing.
-
   is_commercial_operator: boolean | null; // True if the operator sells or promotes any likely paid, experience-based offering (tickets, tours, activities, rentals, etc). Exclude purely retail products.
-  booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer" | null; // If the booking hyperlink is to an external booking website, put "Online Booking". If you are not confident, put "Cannot Infer" and put one hyperlink (in the follow_booking field) to goto to a page that will contain the booking method.
+  booking_method: "Online Booking" | "Form Submission" | "Contact Info" | "Cannot Infer" | null; // If the booking hyperlink is to an external booking website, put "Online Booking". If you are not confident, put "Cannot Infer" and put one hyperlink (in the follow_booking field) to go to a page that will contain the booking method.
   operating_scope: "local" | "multi_regional" | "international" | null; // Does the operator offer experiences in one destination (local), more than one destination within a country (multi_regional), or more than one country (international)?
   follow_contact: string | null; // Choose one hyperlink to follow to the website's contact page. If there is no explicit contact page and sufficient contact info is on the current page, put the current URL; otherwise null.
   follow_booking: string | null; // follow_booking must be null unless booking_method == "Cannot Infer"

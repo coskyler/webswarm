@@ -32,6 +32,7 @@ class ParseResult(BaseModel):
 
 class ClassifyResult(BaseModel):
     ok: bool
+    description: str | None = None
     operator_type: str | None = None
     business_type: str | None = None
     experience_type: str | None = None

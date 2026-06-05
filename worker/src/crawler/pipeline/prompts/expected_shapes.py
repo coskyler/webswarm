@@ -22,6 +22,7 @@ ExpectedLanding = Schema(
         "ok": bool,
         "is_experience": bool,
         "belongs_to_specified_operator": bool,
+        "description": Or(None, str),
         "classification": Or(
             None,
             {
