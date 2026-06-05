@@ -44,8 +44,7 @@ def _classify_pipeline(url: str, operator: OperatorInfo, prompt: str, model_outp
     return classification, None
 
 
-def run(operator: OperatorInfo) -> tuple[ClassifyResult, Trace]:
-    trace = Trace()
+def run(operator: OperatorInfo, trace: Trace) -> ClassifyResult:
     classification, landing_err = _classify_pipeline(operator.url, operator, _LANDING_PROMPT, ExpectedLanding, trace)
 
     # if the pipeline fails, retry once with a serped URL
@@ -58,10 +57,10 @@ def run(operator: OperatorInfo) -> tuple[ClassifyResult, Trace]:
             classification.merge(searched_classification)
 
             if searched_err:
-                return classification, trace
+                return classification
         else:
             classification.merge(ClassifyResult(ok=False, message=searched.message))
-            return classification, trace
+            return classification
             
     if classification.follow_booking:
         booking_classification, booking_err = _classify_pipeline(classification.follow_booking, operator, _BOOKING_PROMPT, ExpectedBooking, trace)
@@ -71,4 +70,4 @@ def run(operator: OperatorInfo) -> tuple[ClassifyResult, Trace]:
         profiles_classification, profiles_err = _classify_pipeline(classification.follow_contact, operator, _PROFILES_PROMPT, ExpectedProfiles, trace)
         classification.merge(profiles_classification)
     
-    return classification, trace
+    return classification

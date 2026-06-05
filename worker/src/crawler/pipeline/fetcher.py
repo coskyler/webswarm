@@ -4,7 +4,7 @@ import asyncio
 import queue
 import threading
 import time
-from concurrent.futures import Future
+from concurrent.futures import Future, TimeoutError
 from urllib.parse import urlparse
 
 import httpx
@@ -337,7 +337,11 @@ def fetch(url: str, trace) -> FetchResult:
     _ensure_browser_thread()
     future = Future()
     _fetch_queue.put((url, future, trace))
-    result = future.result()
+    try:
+        result = future.result(timeout=90)
+    except TimeoutError:
+        trace.add("fetch", ok=False, message="Fetch timed out")
+        return FetchResult(ok=False, message="Fetch timed out")
     if result.ok or _is_not_found(result):
         s3.put(url, result)
         return result

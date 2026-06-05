@@ -47,7 +47,7 @@ def _poll_imds_for_spot_interruption():
         _spot_instance_shutting_down.wait(IMDS_POLL_INTERVAL_SECONDS)
 
 
-def _insert_result(attraction_id, res: ClassifyResult, trace: Trace):
+def _insert_result(id, res: ClassifyResult, trace: Trace):
     with connect() as conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -55,9 +55,23 @@ def _insert_result(attraction_id, res: ClassifyResult, trace: Trace):
             SET status = 'finished',
                 result = %s,
                 trace = %s
-            WHERE attraction_id = %s
+            WHERE id = %s
             """,
-            (Jsonb(res.model_dump()), Jsonb(trace.model_dump()), attraction_id),
+            (Jsonb(res.model_dump()), Jsonb(trace.model_dump()), id),
+        )
+
+        conn.commit()
+
+def _insert_failure(id, trace: Trace):
+    with connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE jobs
+            SET status = 'failed',
+                trace = %s
+            WHERE id = %s
+            """,
+            (Jsonb(trace.model_dump()), id),
         )
 
         conn.commit()
@@ -72,10 +86,15 @@ def job(row):
         url=row["operator_website"] or ""
     )
 
-    result, trace = orchestrator.run(operator)
-    print(trace.to_string())
-    print(json.dumps(result.model_dump(), indent=2))
-    _insert_result(row["attraction_id"], result, trace)
+    trace = Trace()
+
+    try:
+        result = orchestrator.run(operator, trace)
+        _insert_result(row["id"], result, trace)
+    except Exception as e:
+        trace.add("exception", message=f"{type(e).__name__}: {e}")
+        traceback.print_exception(type(e), e, e.__traceback__)
+        _insert_failure(row["id"], trace)
 
     print(f"Finished {row['operator']}")
 
@@ -114,13 +133,6 @@ with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
             break
         
         f = ex.submit(job, row)
-
-        def log_exception(fut):
-            exc = fut.exception()
-            if exc:
-                traceback.print_exception(type(exc), exc, exc.__traceback__)
-
-        f.add_done_callback(log_exception)
         inflight.add(f)
 
         if len(inflight) >= MAX_CONCURRENT_JOBS:

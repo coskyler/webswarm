@@ -39,7 +39,7 @@ CREATE TABLE jobs (
     number_of_products   INTEGER,
 
     -- queue state
-    status TEXT NOT NULL DEFAULT 'idle', -- idle | queued | running | finished
+    status TEXT NOT NULL DEFAULT 'idle', -- idle | queued | running | finished | failed
 
     -- outputs
     result               JSONB,
