@@ -19,9 +19,9 @@ variable "pgbouncer_image_url" {
   type        = string
 }
 
-variable "worker_instance_type" {
-  description = "EC2 instance type for worker instances"
-  type        = string
+variable "worker_instance_types" {
+  description = "EC2 instance types for worker spot instances, in fallback order"
+  type        = list(string)
 }
 
 variable "worker_min_size" {
@@ -89,12 +89,12 @@ variable "max_concurrent_jobs" {
   type        = number
 }
 
-variable "job_limit" {
-  description = "Maximum number of jobs one worker processes before stopping"
+variable "start_row" {
+  description = "Starting postgres row for worker jobs (should generally be 0)"
   type        = number
 }
 
-variable "start_row" {
-  description = "Starting postgres row for worker jobs (should generally be 0)"
+variable "end_row" {
+  description = "Ending postgres row for worker jobs (should be >= start_row)"
   type        = number
 }

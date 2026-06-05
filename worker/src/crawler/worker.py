@@ -13,8 +13,8 @@ import json
 import os
 
 MAX_CONCURRENT_JOBS = int(os.getenv("MAX_CONCURRENT_JOBS"))
-JOB_LIMIT = int(os.getenv("JOB_LIMIT"))
 START_ROW = int(os.getenv("START_ROW"))
+END_ROW = int(os.getenv("END_ROW"))
 MAX_JOB_ID = 234371 # not a perfect random sample, but sufficient for tests
 IMDS_SPOT_INSTANCE_ACTION_URL = "http://169.254.169.254/latest/meta-data/spot/instance-action"
 IMDS_TOKEN_URL = "http://169.254.169.254/latest/api/token"
@@ -85,7 +85,7 @@ if os.getenv("ENVIRONMENT") == "production":
 with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
     inflight = set()
 
-    for _ in range(JOB_LIMIT):
+    while True:
         if _spot_instance_shutting_down.is_set():
             break
 
@@ -96,6 +96,7 @@ with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
                     FROM jobs
                     WHERE status = 'queued'
                       AND id >= %s
+                      AND id <= %s
                     ORDER BY id
                     LIMIT 1
                     FOR UPDATE SKIP LOCKED
@@ -105,7 +106,7 @@ with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
                 FROM job
                 WHERE jobs.id = job.id
                 RETURNING jobs.*;
-            """, (START_ROW,)) # random.randint(0, MAX_JOB_ID) for random sample
+            """, (START_ROW, END_ROW)) # random.randint(0, MAX_JOB_ID) for random sample
             row = cur.fetchone()
             conn.commit()
 

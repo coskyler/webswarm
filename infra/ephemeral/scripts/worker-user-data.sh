@@ -42,6 +42,6 @@ docker run -d \
     -e BRIGHTDATA_SERP_SECRET_NAME=${brightdata_serp_secret_name} \
     -e BRIGHTDATA_FETCH_SECRET_NAME=${brightdata_fetch_secret_name} \
     -e MAX_CONCURRENT_JOBS=${max_concurrent_jobs} \
-    -e JOB_LIMIT=${job_limit} \
     -e START_ROW=${start_row} \
+    -e END_ROW=${end_row} \
     ${worker_image_url}

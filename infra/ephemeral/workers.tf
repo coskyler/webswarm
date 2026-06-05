@@ -16,8 +16,8 @@ locals {
     brightdata_serp_secret_name  = var.brightdata_serp_secret_name
     brightdata_fetch_secret_name = var.brightdata_fetch_secret_name
     max_concurrent_jobs          = var.max_concurrent_jobs
-    job_limit                    = var.job_limit
     start_row                    = var.start_row
+    end_row                      = var.end_row
     cloudwatch_config            = local.worker-cloudwatch_config
   }))
 }
@@ -25,9 +25,8 @@ locals {
 # LAUNCH TEMPLATE
 
 resource "aws_launch_template" "workers" {
-  name_prefix   = "worker-"
-  image_id      = data.aws_ssm_parameter.amazon_linux.value
-  instance_type = var.worker_instance_type
+  name_prefix = "worker-"
+  image_id    = data.aws_ssm_parameter.amazon_linux.value
 
   vpc_security_group_ids = [data.terraform_remote_state.persistent.outputs.workers_security_group_id]
 
@@ -67,9 +66,26 @@ resource "aws_autoscaling_group" "workers" {
   vpc_zone_identifier = data.terraform_remote_state.persistent.outputs.subnet_ids
   health_check_type   = "EC2"
 
-  launch_template {
-    id      = aws_launch_template.workers.id
-    version = "$Latest"
+  mixed_instances_policy {
+    instances_distribution {
+      on_demand_percentage_above_base_capacity = 0
+      spot_allocation_strategy                 = "price-capacity-optimized"
+    }
+
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.workers.id
+        version            = "$Latest"
+      }
+
+      dynamic "override" {
+        for_each = var.worker_instance_types
+
+        content {
+          instance_type = override.value
+        }
+      }
+    }
   }
 
   tag {
