@@ -15,6 +15,9 @@ locals {
     openai_secret_name           = var.openai_secret_name
     brightdata_serp_secret_name  = var.brightdata_serp_secret_name
     brightdata_fetch_secret_name = var.brightdata_fetch_secret_name
+    max_concurrent_jobs          = var.max_concurrent_jobs
+    job_limit                    = var.job_limit
+    start_row                    = var.start_row
     cloudwatch_config            = local.worker-cloudwatch_config
   }))
 }

@@ -12,9 +12,9 @@ import random
 import json
 import os
 
-MAX_CONCURRENT_JOBS = 25
-JOB_LIMIT = 5
-START_ROW = 0
+MAX_CONCURRENT_JOBS = os.getenv("MAX_CONCURRENT_JOBS")
+JOB_LIMIT = os.getenv("JOB_LIMIT")
+START_ROW = os.getenv("START_ROW")
 MAX_JOB_ID = 234371 # not a perfect random sample, but sufficient for tests
 IMDS_SPOT_INSTANCE_ACTION_URL = "http://169.254.169.254/latest/meta-data/spot/instance-action"
 IMDS_TOKEN_URL = "http://169.254.169.254/latest/api/token"

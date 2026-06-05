@@ -83,3 +83,18 @@ variable "brightdata_fetch_secret_name" {
   description = "Secrets Manager secret containing BrightData FETCH API key"
   type        = string
 }
+
+variable "max_concurrent_jobs" {
+  description = "Maximum number of concurrent jobs for one worker"
+  type        = number
+}
+
+variable "job_limit" {
+  description = "Maximum number of jobs one worker processes before stopping"
+  type        = number
+}
+
+variable "start_row" {
+  description = "Starting postgres row for worker jobs (should generally be 0)"
+  type        = number
+}
