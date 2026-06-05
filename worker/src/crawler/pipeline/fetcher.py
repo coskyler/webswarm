@@ -17,7 +17,7 @@ from crawler.storage import get_storage
 
 s3 = get_storage()
 
-_PAGE_POOL = 5
+_PAGE_POOL = os.getenv("PAGE_POOL_SIZE")
 
 _playwright = None
 _browser = None

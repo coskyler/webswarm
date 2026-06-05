@@ -89,6 +89,11 @@ variable "max_concurrent_jobs" {
   type        = number
 }
 
+variable "page_pool_size" {
+  description = "Worker page pool size"
+  type        = number
+}
+
 variable "start_row" {
   description = "Starting postgres row for worker jobs (should generally be 0)"
   type        = number

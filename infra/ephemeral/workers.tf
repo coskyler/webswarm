@@ -16,6 +16,7 @@ locals {
     brightdata_serp_secret_name  = var.brightdata_serp_secret_name
     brightdata_fetch_secret_name = var.brightdata_fetch_secret_name
     max_concurrent_jobs          = var.max_concurrent_jobs
+    page_pool_size               = var.page_pool_size
     start_row                    = var.start_row
     end_row                      = var.end_row
     cloudwatch_config            = local.worker-cloudwatch_config
