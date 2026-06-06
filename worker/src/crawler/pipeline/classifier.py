@@ -32,8 +32,8 @@ def classify(parsed: ParseResult, operator: OperatorInfo, prompt_context: str, e
             # reasoning={"effort": "low"},
             prompt_cache_key="AOIOUSJD98231u89hKAJSHf1982u3JKAHSDAKSHJD1982zxkhfkl",
         )
-    except Exception:
-        trace.add("classify", ok=False, message="ChatGPT API error")
+    except Exception as e:
+        trace.add("classify", ok=False, message="ChatGPT API error", exception=f"{type(e).__name__}: {e}")
         return ClassifyResult(ok=False, message="ChatGPT API error")
 
     result_meta = {

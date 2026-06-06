@@ -92,7 +92,7 @@ def job(row):
         result = orchestrator.run(operator, trace)
         _insert_result(row["id"], result, trace)
     except Exception as e:
-        trace.add("exception", message=f"{type(e).__name__}: {e}")
+        trace.add("uncaught_exception", exception=f"{type(e).__name__}: {e}")
         traceback.print_exception(type(e), e, e.__traceback__)
         _insert_failure(row["id"], trace)
 
@@ -106,6 +106,7 @@ with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
 
     while True:
         if _spot_instance_shutting_down.is_set():
+            print("SPOT SHUTTING DOWN")
             break
 
         with connect() as conn, conn.cursor() as cur:
@@ -137,6 +138,8 @@ with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS) as ex:
 
         if len(inflight) >= MAX_CONCURRENT_JOBS:
             done, inflight = wait(inflight, return_when=FIRST_COMPLETED)
+
+print("WAITING FOR INFLIGHT")
 
 if inflight:
     wait(inflight, return_when=ALL_COMPLETED)

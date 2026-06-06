@@ -135,8 +135,8 @@ def search(operator: OperatorInfo, trace) -> SearchResult:
                 best_score = score
                 best = link
 
-    except Exception:
-        trace.add("search", ok=False, message="SERP provided invalid JSON schema", attempts=attempt_results)
+    except Exception as e:
+        trace.add("search", ok=False, message="SERP provided invalid JSON schema", exception=f"{type(e).__name__}: {e}", attempts=attempt_results)
         return SearchResult(ok=False, message="SERP provided invalid JSON schema")
 
     if not _validate_url(best):
