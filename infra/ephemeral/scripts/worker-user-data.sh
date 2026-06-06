@@ -16,7 +16,7 @@ docker rm worker || true
 
 # Create the cloudwatch agent
 
-cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOF
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'EOF'
 ${cloudwatch_config}
 EOF
 
